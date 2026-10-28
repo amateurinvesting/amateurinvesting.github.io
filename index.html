@@ -186,6 +186,7 @@
       transition: border-color .2s;
     }
     .tip:hover { border-color: var(--gold-lo); }
+    .tip[hidden] { display: none; }  /* hidden until the report is released */
     .tip-text { flex: 1 1 13rem; }
     .tip .btn { padding: .65rem 1rem; }
     .tip-title { display: block; font-weight: 600; line-height: 1.4; }
@@ -260,6 +261,8 @@
       .tip     { grid-column: 1; grid-row: 2; }
       .soon    { grid-column: 2; grid-row: 1 / 3; min-height: 0; }
       .socials { grid-column: 1 / -1; grid-row: 3; }
+      /* While the tip strip is hidden, the report fills its space */
+      .offer.no-tip .report { grid-row: 1 / 3; }
 
       footer {
         display: flex;
@@ -339,7 +342,7 @@
   </header>
 
   <main class="wrap">
-    <div class="offer">
+    <div class="offer no-tip">
 
       <!-- EDIT: the report. Put your PDF in the "files" folder and make data-file match its file name exactly.
            The box has no link until data-release (UTC). 2026-11-01T14:30:00Z = Sun 1 Nov 2026, 09:30 New York time,
@@ -359,8 +362,8 @@
         </span>
       </a>
 
-      <!-- Tip strip: sits right under the report -->
-      <a class="tip" href="https://ko-fi.com/amateurinv" target="_blank" rel="noopener">
+      <!-- Tip strip: sits right under the report. Hidden until the download unlocks. -->
+      <a class="tip" href="https://ko-fi.com/amateurinv" target="_blank" rel="noopener" hidden>
         <span class="tip-text">
           <span class="tip-title">Found the report useful?</span>
           <span class="tip-sub">Tip whatever you think it was worth to you.</span>
@@ -428,6 +431,10 @@
         box.removeAttribute('aria-disabled');
         box.classList.remove('is-locked');
         setLabel('Download');
+        // Show the Ko-fi tip strip under the report
+        var tip = document.querySelector('.tip');
+        if (tip) tip.hidden = false;
+        if (box.parentNode) box.parentNode.classList.remove('no-tip');
       }
 
       function checkFile() {
