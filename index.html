@@ -410,26 +410,44 @@
   <script>
     // Unlocks the report download at the release time (checked against the visitor's clock).
     // If the page is already open at that moment, it unlocks without a reload.
+    // After the release time it first checks that the PDF is actually on the server:
+    // if it is missing, the button says "Coming shortly", stays locked and checks again every minute.
     (function () {
       var box = document.querySelector('.report[data-release]');
       if (!box) return;
+      var file = box.getAttribute('data-file');
       var release = Date.parse(box.getAttribute('data-release'));
       var label = box.querySelector('.btn-label');
+      if (!file || isNaN(release)) return;   // misconfigured: stay locked
+
+      function setLabel(text) { if (label) label.textContent = text; }
 
       function unlock() {
-        box.setAttribute('href', box.getAttribute('data-file'));
+        box.setAttribute('href', file);
         box.setAttribute('download', '');
         box.removeAttribute('aria-disabled');
         box.classList.remove('is-locked');
-        if (label) label.textContent = 'Download';
+        setLabel('Download');
       }
-      function check() {
+
+      function checkFile() {
+        // No fetch (very old browser) or opened from disk: can't check, so just unlock.
+        if (!window.fetch || location.protocol === 'file:') { unlock(); return; }
+        fetch(encodeURI(file), { method: 'HEAD', cache: 'no-store' })
+          .then(function (res) {
+            if (res.ok) { unlock(); return; }
+            setLabel('Coming shortly');         // released, but the PDF isn't uploaded yet
+            setTimeout(checkFile, 60 * 1000);
+          })
+          .catch(function () { unlock(); });   // network hiccup: let the link try normally
+      }
+
+      function waitForRelease() {
         var wait = release - Date.now();
-        if (isNaN(release)) return;          // bad date: stay locked
-        if (wait <= 0) { unlock(); return; }
-        setTimeout(check, Math.min(wait, 60 * 60 * 1000)); // re-check at least hourly
+        if (wait <= 0) { checkFile(); return; }
+        setTimeout(waitForRelease, Math.min(wait, 60 * 60 * 1000)); // re-check at least hourly
       }
-      check();
+      waitForRelease();
     })();
 
     // Draws the faint gold contour lines in the header.
